@@ -2,9 +2,9 @@
 
 **Attendance for schools and training centres, taken with a QR code and the students' own phones.**
 
-A lecturer puts a QR code on the projector. Students scan it with their phone's camera, find their name and tap it, and they're marked present or late. A sign-in only counts from inside the class location, during the class, once per student and once per phone. No app to install and no student accounts.
+A lecturer puts a QR code on the projector. Students scan it with their phone's camera, type their student ID, check it's their name, and they're marked present or late. A sign-in only counts from inside the class location, during the class, once per student and once per phone. No app to install and no student accounts.
 
-I designed and built QR Attend end to end: requirements, design, backend, frontend, tests, packaging and documentation. Version 1.0 was released in September 2026. The source code is private. This repository shows what the product does and how it's built.
+I designed and built QR Attend end to end: requirements, design, backend, frontend, tests, packaging and documentation. Version 1.0 was released in September 2026, and version 1.1 followed the same month with changes from a pilot. The source code is private. This repository shows what the product does and how it's built.
 
 ![The staff dashboard](images/dashboard.png)
 
@@ -12,9 +12,9 @@ I designed and built QR Attend end to end: requirements, design, backend, fronte
 
 | In class | On a student's phone |
 |---|---|
-| ![The presentation screen, with the changing QR code, the 6-digit backup code and the latest sign-ins](images/presentation.png) | ![Finding your name](images/sign-in-phone.png) ![Signed in](images/signed-in-phone.png) |
+| ![The presentation screen, with the changing QR code, the 6-digit backup code and the latest sign-ins](images/presentation.png) | ![Checking a student ID on the sign-in page](images/sign-in-phone.png) ![Signed in](images/signed-in-phone.png) |
 
-- **For students:** scan, allow location, tap your name. A returning phone offers your name straight away. There's a 6-digit code for phones that can't scan, and clear screens explaining every refusal.
+- **For students:** scan, allow location, type your student ID and check the name that comes back. A returning phone offers your name straight away. There's a 6-digit code for phones that can't scan, and clear screens explaining every refusal.
 - **For lecturers:** courses and class lists imported from Excel, sessions with a location and a sign-in window, a full-screen presentation mode, and a review of anything suspicious after class.
 - **For admins:** staff and roles, locations on a map, reports with CSV and Excel export, organization settings and an audit log of every change.
 - **For each customer:** their own installation, name, logo, colour, time zone and locations. Nothing about one customer is built into the software.
@@ -31,8 +31,8 @@ sequenceDiagram
     participant S as Server
     P->>S: Scan: session + code from the QR
     S-->>P: Class details, and a ticket valid for 3 minutes
-    P->>S: Search the class list (as they type)
-    S-->>P: Up to 5 matching names, IDs partly hidden
+    P->>S: Check this student ID
+    S-->>P: The name for that ID on this class list, or "not on the list"
     P->>S: Sign in as this student, from here (GPS position)
     S->>S: Ticket, sign-in window, location, class list,<br/>one sign-in per student, one student per phone
     S-->>P: Present or Late, or exactly why not
@@ -40,7 +40,9 @@ sequenceDiagram
 
 ## Engineering highlights
 
-**A code that can't be shared.** The QR code changes every 30 seconds. It's an HMAC of the session and the current time window, so the server checks it without storing anything, and a photo sent to a friend at home soon stops working. Scanning swaps it for a signed ticket that lasts three minutes, so the code can change while a student finds their name.
+**A code that can't be shared.** The QR code changes every 30 seconds. It's an HMAC of the session and the current time window, so the server checks it without storing anything, and a photo sent to a friend at home soon stops working. Scanning swaps it for a signed ticket that lasts three minutes, so the code can change while a student types their ID.
+
+**No class list to browse.** A student types their own ID and the server answers with one name or nothing, so scanning the code never shows anyone a classmate's name. Each phone gets 20 checks a minute, which stops it working through the list.
 
 **Scan once, enforced by the database.** One sign-in per student per session and one student per phone per session are unique constraints in PostgreSQL, not just checks in code, so two taps in the same millisecond can't make two records. Phones are recognised by a device ID the server signs, kept in a cookie with a backup copy in the browser. A made-up ID is simply ignored.
 
@@ -48,13 +50,13 @@ sequenceDiagram
 
 **Flag, don't block.** No website can prove who is holding a phone, so things that look like a workaround are flagged for the lecturer instead of refused. That includes a brand-new browser identical to another phone on the same network, a phone that signed in someone else last time, or a student who added themselves. Each flag records its evidence at the moment it happened.
 
-**Imports without duplicates.** Students are recognised by student ID, then email, then phone number. An import shows a preview of new, matched, possibly duplicated and conflicting rows, and never overwrites an existing student.
+**Imports without duplicates.** Every row needs a student ID. Students are recognised by that ID, then email, then phone number. An import shows a preview of new, matched, possibly duplicated and conflicting rows, and never overwrites an existing student.
 
 ## Quality
 
 | | |
 |---|---|
-| Automated tests | 451: 360 backend, 80 frontend, 11 end-to-end |
+| Automated tests | 586: 433 backend, 141 frontend, 12 end-to-end |
 | Backend coverage | 95%, and over 90% everywhere a mistake costs a student their attendance |
 | End-to-end | Playwright runs a whole installation from an empty database: setup, a lecturer, an imported class, a live session, and phone-sized browsers with real GPS positions signing in, being refused 2 km away, and reusing a phone |
 | Security | A test calls every API route as an anonymous caller, so a new endpoint without permissions fails the build. Django's deployment checks run against the production settings, and a Content-Security-Policy is enforced and tested |

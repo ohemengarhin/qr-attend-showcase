@@ -56,7 +56,7 @@ sequenceDiagram
 
 | | |
 |---|---|
-| Automated tests | 586: 433 backend, 141 frontend, 12 end-to-end |
+| Automated tests | 588: 433 backend, 143 frontend, 12 end-to-end |
 | Backend coverage | 95%, and over 90% everywhere a mistake costs a student their attendance |
 | End-to-end | Playwright runs a whole installation from an empty database: setup, a lecturer, an imported class, a live session, and phone-sized browsers with real GPS positions signing in, being refused 2 km away, and reusing a phone |
 | Security | A test calls every API route as an anonymous caller, so a new endpoint without permissions fails the build. Django's deployment checks run against the production settings, and a Content-Security-Policy is enforced and tested |
